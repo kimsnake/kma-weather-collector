@@ -28,14 +28,19 @@ jobs:
         id: time
         run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
 
-      # 4. 날씨 데이터 수집 스크립트 실행
+      # 4. 날씨 데이터 수집 스크립트 실행 (단계별 진행 상황 로깅 추가)
       - name: Run Weather Collectors
         env:
           KMA_SERVICE_KEY: ${{ secrets.KMA_SERVICE_KEY }}
         run: |
-          uv run python current_collector.py
-          uv run python forecast_collector.py
-          uv run python vilage_collector.py
+          echo "==> [1/3] Running current_collector.py..."
+          time uv run python current_collector.py
+          
+          echo "==> [2/3] Running forecast_collector.py..."
+          time uv run python forecast_collector.py
+          
+          echo "==> [3/3] Running vilage_collector.py..."
+          time uv run python vilage_collector.py
 
       # 5. 저장소(kma-weather-storage) 레포로 데이터 및 깔끔한 로그 푸시
       - name: Push Data and Log to Storage Repo
@@ -52,7 +57,7 @@ jobs:
           START_FORMATTED=$(date -d "@$START_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$START_TIME" "+%Y-%m-%d %H:%M:%S")
           END_FORMATTED=$(date -d "@$END_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$END_TIME" "+%Y-%m-%d %H:%M:%S")
           
-          # 임시 디렉토리에 스토리지 레포 클론 (토큰 인증 방식 수정)
+          # 임시 디렉토리에 스토리지 레포 클론 (토큰 인증 방식)
           git clone https://${{ secrets.STORAGE_KEY }}@github.com/kmsnake/kma-weather-storage.git storage_repo
           
           # 누적 로그 디렉토리 생성 및 CSV 기록
