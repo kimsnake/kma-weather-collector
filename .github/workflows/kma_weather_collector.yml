@@ -1,0 +1,79 @@
+name: KMA Weather Collector & Sync
+
+on:
+  workflow_dispatch: # 외부 cron-job.org 등에서 수동/원격 트리거 가능
+
+jobs:
+  collect-and-sync:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 수집기 레포 체크아웃
+      - name: Checkout Collector Repo
+        uses: actions/checkout@v4
+
+      # 2. Python 및 uv 세팅
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install Dependencies
+        run: uv sync
+
+      # 3. 작업 시작 시간 기록 (타임스탬프)
+      - name: Record Start Time
+        id: time
+        run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      # 4. 날씨 데이터 수집 스크립트 실행
+      - name: Run Weather Collectors
+        env:
+          KMA_SERVICE_KEY: ${{ secrets.KMA_SERVICE_KEY }}
+        run: |
+          uv run python current_collector.py
+          uv run python vilage_collector.py
+
+      # 5. 저장소(kma-weather-storage) 레포로 데이터 및 깔끔한 로그 푸시
+      - name: Push Data and Log to Storage Repo
+        env:
+          STORAGE_PAT: ${{ secrets.STORAGE_KEY }}
+        run: |
+          # Git 설정
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.io"
+          
+          # 소요 시간 및 날짜 계산
+          END_TIME=$(date +%s)
+          DURATION=$(( END_TIME - START_TIME ))
+          START_FORMATTED=$(date -d "@$START_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$START_TIME" "+%Y-%m-%d %H:%M:%S")
+          END_FORMATTED=$(date -d "@$END_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$END_TIME" "+%Y-%m-%d %H:%M:%S")
+          
+          # 임시 디렉토리에 스토리지 레포 클론
+          git clone https://x-access-token:${{ secrets.STORAGE_KEY }}@github.com/kmsnake/kma-weather-storage.git storage_repo
+          
+          # 누적 로그 디렉토리 생성 및 CSV 기록
+          mkdir -p storage_repo/meta_logs
+          LOG_FILE="storage_repo/meta_logs/collection_history.csv"
+          
+          if [ ! -f "$LOG_FILE" ]; then
+            echo "start_time,end_time,duration_sec,status" > "$LOG_FILE"
+          fi
+          
+          echo "$START_FORMATTED,$END_FORMATTED,$DURATION,SUCCESS" >> "$LOG_FILE"
+          
+          # 최신 데이터 파일 복사
+          cp -r latest_weather_data/ storage_repo/
+          
+          cd storage_repo
+          git add .
+          
+          # 변경된 파일이 있을 때만 커밋 및 푸시
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: update weather data and log (${DURATION}s) [skip ci]"
+            git push origin main
+          fi
