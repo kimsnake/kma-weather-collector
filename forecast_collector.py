@@ -48,10 +48,10 @@ def fetch_and_save_weather_data():
         # 1. 월별 누적용 하위 폴더 및 파일 경로
         monthly_dir_path = os.path.join(BASE_DIR, f"{loc_name}_{nx}_{ny}")
         os.makedirs(monthly_dir_path, exist_ok=True)
-        monthly_csv = os.path.join(monthly_dir_path, f"{loc_name}_{nx}_{ny}_{year_month_str}.csv")
+        monthly_csv = os.path.join(monthly_dir_path, f"{loc_name}_{nx}_{ny}_{year_month_str}_forecast.csv")
         
         # 2. 최신 데이터 1줄용 파일 경로
-        latest_csv = os.path.join(LATEST_DIR, f"{loc_name}_{nx}_{ny}_fcst_latest.csv")
+        latest_csv = os.path.join(LATEST_DIR, f"{loc_name}_{nx}_{ny}_forecast_latest.csv")
         
         full_url = f"{API_BASE_URL}?serviceKey={SERVICE_KEY}&pageNo=1&numOfRows=1000&dataType=JSON&base_date={base_date_str}&base_time={base_time_str}&nx={nx}&ny={ny}"
         

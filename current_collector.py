@@ -34,10 +34,10 @@ def fetch_and_save_current_weather():
         nx = loc["nx"]
         ny = loc["ny"]
         
-        # 1. 월별 누적 데이터를 저장할 하위 폴더 및 파일 경로 설정 (실황 데이터는 _obs.csv 형태로 구분)
+        # 1. 월별 누적 데이터를 저장할 하위 폴더 및 파일 경로 설정 (실황 데이터는 _current.csv 형태로 구분)
         monthly_dir_path = os.path.join(BASE_DIR, f"{loc_name}_{nx}_{ny}")
         os.makedirs(monthly_dir_path, exist_ok=True)
-        monthly_csv = os.path.join(monthly_dir_path, f"{loc_name}_{nx}_{ny}_{year_month_str}_obs.csv")
+        monthly_csv = os.path.join(monthly_dir_path, f"{loc_name}_{nx}_{ny}_{year_month_str}_current.csv")
         
         # 2. 가장 최신 실황 상태 1줄만 보관할 파일 경로 설정 (덮어쓰기용)
         latest_csv = os.path.join(LATEST_DIR, f"{loc_name}_{nx}_{ny}_current_latest.csv")
