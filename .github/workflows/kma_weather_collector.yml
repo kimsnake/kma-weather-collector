@@ -28,7 +28,7 @@ jobs:
         id: time
         run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
 
-      # 4. 날씨 데이터 수집 스크립트 실행 (단계별 진행 상황 로깅 추가)
+      # 4. 날씨 데이터 수집 스크립트 실행 (단계별 로깅 포함)
       - name: Run Weather Collectors
         env:
           KMA_SERVICE_KEY: ${{ secrets.KMA_SERVICE_KEY }}
@@ -47,7 +47,7 @@ jobs:
         env:
           STORAGE_PAT: ${{ secrets.STORAGE_KEY }}
         run: |
-          # Git 설정
+          # Git 기본 설정
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.io"
           
@@ -57,8 +57,11 @@ jobs:
           START_FORMATTED=$(date -d "@$START_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$START_TIME" "+%Y-%m-%d %H:%M:%S")
           END_FORMATTED=$(date -d "@$END_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$END_TIME" "+%Y-%m-%d %H:%M:%S")
           
-          # 임시 디렉토리에 스토리지 레포 클론 (토큰 인증 방식)
-          git clone https://${{ secrets.STORAGE_KEY }}@github.com/kmsnake/kma-weather-storage.git storage_repo
+          # Git 인증 정보 전역 설정 (insteadOf 방식을 통해 Private 레포 접근 우회)
+          git config --global url."https://${{ secrets.STORAGE_KEY }}@github.com/".insteadOf "https://github.com/"
+          
+          # 임시 디렉토리에 스토리지 레포 클론
+          git clone https://github.com/kmsnake/kma-weather-storage.git storage_repo
           
           # 누적 로그 디렉토리 생성 및 CSV 기록
           mkdir -p storage_repo/meta_logs
