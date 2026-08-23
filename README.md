@@ -20,8 +20,6 @@
 ```text
 kma-weather-collector/
 ├── .github/workflows/        # GitHub Actions 자동화 워크플로우
-├── latest_weather_data/      # 최신 1줄 덮어쓰기 데이터 저장소
-├── weather_vilage_data/      # 월별 누적 단기예보 데이터 저장소
 ├── config.py                 # 환경변수 및 지역(NX, NY), 코드 매핑 설정
 ├── vilage_collector.py       # 단기예보 수집 스크립트
 ├── current_collector.py      # 초단기실황 수집 스크립트
