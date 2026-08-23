@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "START_TIME=$(TZ='Asia/Seoul' date +%s)" >> $GITHUB_ENV
 
-      # 4. 날씨 데이터 수집 스크립트 실행 (실시간 출력을 위해 time 명령어 제외)
+      # 4. 날씨 데이터 수집 스크립트 실행
       - name: Run Weather Collectors
         env:
           KMA_SERVICE_KEY: ${{ secrets.KMA_SERVICE_KEY }}
@@ -74,10 +74,12 @@ jobs:
           
           echo "$START_FORMATTED,$END_FORMATTED,$DURATION,SUCCESS" >> "$LOG_FILE"
           
-          # 실제 수집된 3개의 데이터 폴더를 각각 복사 (에러 로그는 남기되, 전체 액션이 죽지 않도록 방어)
-          cp -r weather_current_data/ storage_repo/ || true
-          cp -r weather_forecast_data/ storage_repo/ || true
-          cp -r weather_vilage_data/ storage_repo/ || true
+          # 실제 수집된 데이터 폴더들이 존재할 경우에만 안전하게 복사
+          for folder in latest_weather_data weather_current_data weather_forecast_data weather_vilage_data; do
+            if [ -d "$folder" ]; then
+              cp -r "$folder" storage_repo/
+            fi
+          done
           
           cd storage_repo
           git add .
