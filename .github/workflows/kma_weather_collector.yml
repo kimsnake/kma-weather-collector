@@ -74,7 +74,10 @@ jobs:
           echo "$START_FORMATTED,$END_FORMATTED,$DURATION,SUCCESS" >> "$LOG_FILE"
           
           # 최신 데이터 파일 복사
-          cp -r latest_weather_data/ storage_repo/
+          cp -r weather_current_data/ storage_repo/ || true
+          cp -r weather_forecast_data/ storage_repo/ || true
+          cp -r weather_vilage_data/ storage_repo/ || true
+          cp -r latest_weather_data/ storage_repo/ || true
           
           cd storage_repo
           git add .
