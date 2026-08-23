@@ -216,3 +216,27 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Python 가상환경 및 캐시 ---
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- 기상청 수집 데이터 및 디렉터리 ---
+weather_vilage_data/
+weather_current_data/
+latest_weather_data/
+*.csv
+
+# --- 운영체제 생성 파일 ---
+.DS_Store
+Thumbs.db
+
+# --- 개발 환경 설정 및 IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
