@@ -2,17 +2,21 @@ import os
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from config import TARGET_LOCATIONS, SERVICE_KEY, SKY_MAP, PTY_MAP, LATEST_DIR
 
 API_BASE_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
 BASE_DIR = "weather_forecast_data" 
 
+# 한국 시간(KST) 타임존 설정
+KST = ZoneInfo("Asia/Seoul")
+
 def get_recent_ultrasrt_base_time():
     """
     초단기예보(UltraSrtFcst)는 매시 30분에 발표됩니다.
-    현재 시각을 기준으로 API가 정상 응답을 주는 가장 최근의 발표 일자와 시각(HH30)을 계산합니다.
+    한국 시간(KST)을 기준으로 API가 정상 응답을 주는 가장 최근의 발표 일자와 시각(HH30)을 계산합니다.
     """
-    now = datetime.now()
+    now = datetime.now(KST)
     hour = now.hour
     minute = now.minute
     
@@ -29,16 +33,16 @@ def get_recent_ultrasrt_base_time():
     return base_date_str, base_time_str
 
 def fetch_and_save_weather_data():
-    now = datetime.now()
+    now = datetime.now(KST)
     
-    # 고정값 대신 동적으로 가장 최근 발표 시각 계산
+    # KST 기준 가장 최근 발표 시각 계산
     base_date_str, base_time_str = get_recent_ultrasrt_base_time()
     year_month_str = now.strftime('%Y%m')  # 월별 분리용 (예: '202608')
     
     # 최신 데이터용 디렉터리 미리 생성
     os.makedirs(LATEST_DIR, exist_ok=True)
     
-    print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] 🔍 주요 지역 기상청 초단기예보 수집 시작 (Base: {base_date_str} {base_time_str})...\n")
+    print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')} KST] 🔍 주요 지역 기상청 초단기예보 수집 시작 (Base: {base_date_str} {base_time_str})...\n")
 
     for loc in TARGET_LOCATIONS:
         loc_name = loc["name"]
@@ -72,6 +76,10 @@ def fetch_and_save_weather_data():
             pivot_df = df.pivot(index=["fcstDate", "fcstTime"], columns="category", values="fcstValue").reset_index()
             pivot_df.columns.name = None
             
+            # fcstDate와 fcstTime을 결합하여 시간순 오름차순 정렬 수행
+            pivot_df['datetime'] = pd.to_datetime(pivot_df['fcstDate'] + pivot_df['fcstTime'], format='%Y%m%d%H%M')
+            pivot_df = pivot_df.sort_values('datetime').reset_index(drop=True)
+            
             row_data = {
                 "수집시각": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "발표일자": df["baseDate"].iloc[0],
@@ -80,18 +88,21 @@ def fetch_and_save_weather_data():
                 "격자Y": ny
             }
             
-            fcst_times = sorted(pivot_df["fcstTime"].unique())
-            for idx, t in enumerate(fcst_times, start=1):
-                sub = pivot_df[pivot_df["fcstTime"] == t].iloc[0]
-                row_data[f"+{idx}_예보시각"] = t
-                row_data[f"+{idx}_기온(℃)[T1H]"] = sub.get("T1H")
-                row_data[f"+{idx}_습도(%)[REH]"] = sub.get("REH")
-                row_data[f"+{idx}_강수확률(%)[POP]"] = sub.get("POP")
-                row_data[f"+{idx}_강수형태[PTY]"] = PTY_MAP.get(str(sub.get("PTY")), "기타")
-                row_data[f"+{idx}_1시간강수량[RN1]"] = sub.get("RN1")
-                row_data[f"+{idx}_하늘상태[SKY]"] = SKY_MAP.get(str(sub.get("SKY")), "기타")
-                row_data[f"+{idx}_풍속(m/s)[WSD]"] = sub.get("WSD")
-                row_data[f"+{idx}_풍향(deg)[VEC]"] = sub.get("VEC")
+            # 정렬된 시간 순서대로 인덱스를 매겨 데이터 매핑 (월-일 시:분 형태로 보기 좋게 저장)
+            for idx, row in pivot_df.iterrows():
+                i = idx + 1
+                dt_obj = row['datetime']
+                formatted_time = dt_obj.strftime("%m-%d %H:%M")  # 예: 08-24 22:00 형태
+                
+                row_data[f"+{i}_예보시각"] = formatted_time
+                row_data[f"+{i}_기온(℃)[T1H]"] = row.get("T1H")
+                row_data[f"+{i}_습도(%)[REH]"] = row.get("REH")
+                row_data[f"+{i}_강수확률(%)[POP]"] = row.get("POP")
+                row_data[f"+{i}_강수형태[PTY]"] = PTY_MAP.get(str(row.get("PTY")), "기타")
+                row_data[f"+{i}_1시간강수량[RN1]"] = row.get("RN1")
+                row_data[f"+{i}_하늘상태[SKY]"] = SKY_MAP.get(str(row.get("SKY")), "기타")
+                row_data[f"+{i}_풍속(m/s)[WSD]"] = row.get("WSD")
+                row_data[f"+{i}_풍향(deg)[VEC]"] = row.get("VEC")
             
             result_df = pd.DataFrame([row_data])
             
