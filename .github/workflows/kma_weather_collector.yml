@@ -61,7 +61,7 @@ jobs:
           git config --global url."https://${{ secrets.STORAGE_KEY }}@github.com/".insteadOf "https://github.com/"
           
           # 임시 디렉토리에 스토리지 레포 클론
-          git clone https://github.com/kmsnake/kma-weather-storage.git storage_repo
+          git clone https://github.com/kimsnake/kma-weather-storage.git storage_repo
           
           # 누적 로그 디렉토리 생성 및 CSV 기록
           mkdir -p storage_repo/meta_logs
