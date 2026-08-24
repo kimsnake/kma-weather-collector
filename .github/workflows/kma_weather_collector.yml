@@ -63,16 +63,22 @@ jobs:
           
           # 임시 디렉토리에 스토리지 레포 클론
           git clone https://github.com/kimsnake/kma-weather-storage.git storage_repo
+          cd storage_repo
+          
+          # 원격 레포지토리에 이미 쌓여있는 최신 로그 내용 동기화 (기존 기록 보존 핵심)
+          git pull origin main || true
           
           # 누적 로그 디렉토리 생성 및 CSV 기록
-          mkdir -p storage_repo/meta_logs
-          LOG_FILE="storage_repo/meta_logs/collection_history.csv"
+          mkdir -p meta_logs
+          LOG_FILE="meta_logs/collection_history.csv"
           
           if [ ! -f "$LOG_FILE" ]; then
             echo "start_time,end_time,duration_sec,status" > "$LOG_FILE"
           fi
           
           echo "$START_FORMATTED,$END_FORMATTED,$DURATION,SUCCESS" >> "$LOG_FILE"
+          
+          cd ..
           
           # 실제 수집된 데이터 폴더들이 존재할 경우에만 안전하게 복사
           for folder in latest_weather_data weather_current_data weather_forecast_data weather_vilage_data; do

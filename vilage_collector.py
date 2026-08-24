@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import os
 import pandas as pd
+from zoneinfo import ZoneInfo
 from config import TARGET_LOCATIONS, SERVICE_KEY, SKY_MAP, PTY_MAP, LATEST_DIR
 requests = __import__("requests")
 
@@ -8,21 +9,23 @@ requests = __import__("requests")
 API_BASE_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
 BASE_DIR = "weather_vilage_data" 
 
+# 한국 시간(KST) 타임존 설정
+KST = ZoneInfo("Asia/Seoul")
+
 def check_vilage_base_time_generous():
     """
-    현재 시각의 '시(hour)'가 단기예보 정기 발표 시간대(02, 05, 08, 11, 14, 17, 20, 23시)에 
+    현재 시각(KST)의 '시(hour)'가 단기예보 정기 발표 시간대(02, 05, 08, 11, 14, 17, 20, 23시)에 
     해당하기만 하면 분 단위 상관없이 넉넉하게 해당 발표 회차를 반환합니다.
-    (예: 2시 몇 분에 돌든 2시 발표분 조회, 3시나 4시면 패스)
     """
-    now = datetime.now()
+    now = datetime.now(KST)
     hour = now.hour
 
     # 단기예보 정기 발표 시간 목록 (시 단위)
     base_hours = [2, 5, 8, 11, 14, 17, 20, 23]
 
-    # 현재 시간이 정기 발표 시간대에 포함되지 않으면 패스 (예: 3시, 4시 등)
+    # 현재 시간이 정기 발표 시간대에 포함되지 않으면 패스
     if hour not in base_hours:
-        print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ⏳ 현재 시간({hour}시)은 정기 발표 시간이 아니므로 패스합니다.")
+        print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')} KST] ⏳ 현재 시간({hour}시)은 정기 발표 시간이 아니므로 패스합니다.")
         return None, None
 
     # 새벽 2시 정기 발표인 경우 날짜 처리
@@ -34,7 +37,7 @@ def check_vilage_base_time_generous():
 
 
 def fetch_and_save_vilage_weather():
-    now = datetime.now()
+    now = datetime.now(KST)
     
     # 시간대 조건만 맞으면 넉넉하게 발표 시간 가져오기 (아니면 패스)
     base_date_str, base_time_str = check_vilage_base_time_generous()
@@ -45,7 +48,7 @@ def fetch_and_save_vilage_weather():
     os.makedirs(LATEST_DIR, exist_ok=True)
 
     print(
-        f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] 🔍 [정기발표 시간대 일치] 단기예보 수집 시작 (Base: {base_date_str} {base_time_str})...\n"
+        f"[{now.strftime('%Y-%m-%d %H:%M:%S')} KST] 🔍 [정기발표 시간대 일치] 단기예보 수집 시작 (Base: {base_date_str} {base_time_str})...\n"
     )
 
     for loc in TARGET_LOCATIONS:
@@ -106,12 +109,14 @@ def fetch_and_save_vilage_weather():
                 "격자Y": ny,
             }
 
-            pivot_df["dateTime"] = pivot_df["fcstDate"] + pivot_df["fcstTime"]
+            pivot_df["dateTime"] = pd.to_datetime(pivot_df["fcstDate"] + pivot_df["fcstTime"], format='%Y%m%d%H%M')
             pivot_df = pivot_df.sort_values("dateTime")
 
             for idx, (_, sub) in enumerate(pivot_df.iterrows(), start=1):
-                row_data[f"+{idx}_예보일자"] = sub.get("fcstDate")
-                row_data[f"+{idx}_예보시각"] = sub.get("fcstTime")
+                dt_obj = sub["dateTime"]
+                formatted_time = dt_obj.strftime("%m-%d %H:%M") # 월-일 시:분 형태로 보기 좋게 매핑
+                
+                row_data[f"+{idx}_예보시각"] = formatted_time
                 row_data[f"+{idx}_기온[TMP]"] = sub.get("TMP")
                 row_data[f"+{idx}_습도[REH]"] = sub.get("REH")
                 row_data[f"+{idx}_강수확률[POP]"] = sub.get("POP")
