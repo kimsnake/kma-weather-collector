@@ -74,6 +74,13 @@ jobs:
           START_FORMATTED=$(TZ='Asia/Seoul' date -d "@$START_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || TZ='Asia/Seoul' date -r "$START_TIME" "+%Y-%m-%d %H:%M:%S")
           END_FORMATTED=$(TZ='Asia/Seoul' date -d "@$END_TIME" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || TZ='Asia/Seoul' date -r "$END_TIME" "+%Y-%m-%d %H:%M:%S")
           
+          # 소요 시간이 60초를 초과하면 FAIL, 그 외는 SUCCESS 판정
+          if [ "$DURATION" -gt 60 ]; then
+            STATUS="FAIL"
+          else
+            STATUS="SUCCESS"
+          fi
+          
           # 이미 3번 스텝에서 클론해 둔 storage_temp를 storage_repo로 이름 변경하여 재활용
           mv storage_temp storage_repo
           cd storage_repo
@@ -89,7 +96,7 @@ jobs:
             echo "start_time,end_time,duration_sec,status" > "$LOG_FILE"
           fi
           
-          echo "$START_FORMATTED,$END_FORMATTED,$DURATION,SUCCESS" >> "$LOG_FILE"
+          echo "$START_FORMATTED,$END_FORMATTED,$DURATION,$STATUS" >> "$LOG_FILE"
           
           cd ..
           
