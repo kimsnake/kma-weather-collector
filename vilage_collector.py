@@ -4,6 +4,7 @@ import pandas as pd
 from zoneinfo import ZoneInfo
 from config import TARGET_LOCATIONS, SERVICE_KEY, SKY_MAP, PTY_MAP, LATEST_DIR
 requests = __import__("requests")
+import time
 
 # --- 1. 설정 정보 ---
 API_BASE_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
@@ -69,9 +70,31 @@ def fetch_and_save_vilage_weather():
 
         print(f"📍 [{loc_name} (NX:{nx}, NY:{ny})] 단기예보 조회 중...")
 
+        # --- 네트워크 타임아웃 대응 재시도(Retry) 로직 ---
+        max_retries = 3
+        success = False
+        response = None
+
+        for attempt in range(max_retries):
+            try:
+                # 연결 대기 5초, 읽기 대기 15초 타임아웃 설정 (단기예보는 데이터 양이 많아 읽기 시간을 조금 더 줌)
+                response = requests.get(full_url, timeout=(5, 15))
+                response.raise_for_status()
+                success = True
+                break
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                print(f"⚠️ [{loc_name}] 연결 지연 또는 타임아웃 발생 (시도 {attempt+1}/{max_retries}): {e}")
+                time.sleep(3)  # 3초 대기 후 재시도
+            except requests.exceptions.RequestException as e:
+                print(f"❌ [{loc_name}] 요청 에러 발생: {e}")
+                break
+
+        if not success:
+            print(f"❌ [{loc_name}] 최종 연결 실패로 해당 지역 수집 건너뜀\n")
+            print("-" * 40)
+            continue
+
         try:
-            response = requests.get(full_url)
-            response.raise_for_status()
             data = response.json()
 
             header = data.get("response", {}).get("header", {})

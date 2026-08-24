@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from config import TARGET_LOCATIONS, SERVICE_KEY, SKY_MAP, PTY_MAP, LATEST_DIR
+import time
 
 # 기상청 초단기실황(UltraSrtNcst - 현재 날씨) 조회 API 엔드포인트 URL
 API_BASE_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
@@ -16,6 +17,7 @@ def fetch_and_save_current_weather():
     """
     지정된 주요 지역들의 기상청 초단기실황(현재 날씨 관측값) 데이터를 조회하여,
     월별 누적 CSV 파일과 최신 상태 1줄 덮어쓰기 CSV 파일로 각각 저장하는 함수
+    (네트워크 타임아웃 및 재시도 로직 포함)
     """
     now = datetime.now(KST)
     
@@ -51,10 +53,32 @@ def fetch_and_save_current_weather():
         
         print(f"📍 [{loc_name} (NX:{nx}, NY:{ny})] 실황 조회 중 ({base_date_str} {base_time_str})...")
         
+        # --- 네트워크 타임아웃 대응 재시도(Retry) 로직 ---
+        max_retries = 3
+        success = False
+        response = None
+
+        for attempt in range(max_retries):
+            try:
+                # 연결 대기 5초, 읽기 대기 10초 타임아웃 설정
+                response = requests.get(full_url, timeout=(5, 10))
+                response.raise_for_status()
+                success = True
+                break
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                print(f"⚠️ [{loc_name}] 연결 지연 또는 타임아웃 발생 (시도 {attempt+1}/{max_retries}): {e}")
+                time.sleep(3)  # 3초 대기 후 재시도
+            except requests.exceptions.RequestException as e:
+                print(f"❌ [{loc_name}] 요청 에러 발생: {e}")
+                break
+
+        if not success:
+            print(f"❌ [{loc_name}] 최종 연결 실패로 해당 지역 수집 건너뜀\n")
+            print("-" * 40)
+            continue
+
         try:
-            # API 서버로 HTTP GET 요청 전송 및 응답 데이터(JSON) 파싱
-            response = requests.get(full_url)
-            response.raise_for_status()
+            # 응답 데이터(JSON) 파싱
             data = response.json()
             
             # API 응답 헤더의 결과 코드 확인 ("00"이 정상 응답)
@@ -115,7 +139,7 @@ def fetch_and_save_current_weather():
             print(f"✨ [{loc_name}] 최신 1줄 파일 갱신 완료: {latest_csv}")
                 
         except Exception as e:
-            print(f"❌ [{loc_name}] 예외 발생: {e}")
+            print(f"❌ [{loc_name}] 데이터 처리 중 예외 발생: {e}")
             
         print("-" * 40)
 
