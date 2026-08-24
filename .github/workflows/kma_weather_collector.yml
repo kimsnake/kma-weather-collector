@@ -29,6 +29,9 @@ jobs:
           STORAGE_PAT: ${{ secrets.STORAGE_KEY }}
         run: |
           git config --global url."https://${{ secrets.STORAGE_KEY }}@github.com/".insteadOf "https://github.com/"
+          git config --global http.postBuffer 524288000
+          git config --global http.lowSpeedLimit 0
+          git config --global http.lowSpeedTime 999999
           git clone https://github.com/kimsnake/kma-weather-storage.git storage_temp
           
           # 기존에 수집되어 있던 데이터 폴더들이 있다면 현재 수집기 레포 위치로 복사해오기
