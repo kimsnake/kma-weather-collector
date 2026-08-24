@@ -3,7 +3,7 @@
 기상청 공공데이터 API(초단기실황, 초단기예보, 단기예보)를 활용하여 주요 지역의 기상 데이터를 자동으로 수집하고, 로컬 CSV 누적 및 최신 상태(`latest`)를 관리하는 파이프라인 프로젝트입니다.
 
 ---
-🔗 Live Demo: 날씨 대시보드 바로가기
+🔗 **Live Demo:** [성남시 날씨 대시보드 바로가기](https://kimsnake-kma-weather-dashboard.streamlit.app/%EC%84%B1%EB%82%A8)
 
 ## 🚀 Key Features
 
