@@ -54,7 +54,7 @@ def fetch_and_save_current_weather():
         print(f"📍 [{loc_name} (NX:{nx}, NY:{ny})] 실황 조회 중 ({base_date_str} {base_time_str})...")
         
         # --- 네트워크 타임아웃 대응 재시도(Retry) 로직 ---
-        max_retries = 3
+        max_retries = 10
         success = False
         response = None
 
@@ -67,7 +67,7 @@ def fetch_and_save_current_weather():
                 break
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                 print(f"⚠️ [{loc_name}] 연결 지연 또는 타임아웃 발생 (시도 {attempt+1}/{max_retries}): {e}")
-                time.sleep(3)  # 3초 대기 후 재시도
+                time.sleep(10)  # 3초 대기 후 재시도
             except requests.exceptions.RequestException as e:
                 print(f"❌ [{loc_name}] 요청 에러 발생: {e}")
                 break
