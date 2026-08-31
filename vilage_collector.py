@@ -77,14 +77,13 @@ def fetch_and_save_vilage_weather():
 
         for attempt in range(max_retries):
             try:
-                # 연결 대기 5초, 읽기 대기 15초 타임아웃 설정 (단기예보는 데이터 양이 많아 읽기 시간을 조금 더 줌)
                 response = requests.get(full_url, timeout=(5, 15))
                 response.raise_for_status()
                 success = True
                 break
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                 print(f"⚠️ [{loc_name}] 연결 지연 또는 타임아웃 발생 (시도 {attempt+1}/{max_retries}): {e}")
-                time.sleep(10)  # 3초 대기 후 재시도
+                time.sleep(30)  # 30초 대기 후 재시도
             except requests.exceptions.RequestException as e:
                 print(f"❌ [{loc_name}] 요청 에러 발생: {e}")
                 break
