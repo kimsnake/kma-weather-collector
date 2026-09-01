@@ -54,7 +54,7 @@ def fetch_and_save_current_weather():
         print(f"📍 [{loc_name} (NX:{nx}, NY:{ny})] 실황 조회 중 ({base_date_str} {base_time_str})...")
         
         # --- 네트워크 타임아웃 대응 재시도(Retry) 로직 ---
-        max_retries = 10
+        max_retries = 5
         success = False
         response = None
 

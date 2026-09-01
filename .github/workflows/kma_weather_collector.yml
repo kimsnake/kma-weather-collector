@@ -62,7 +62,7 @@ jobs:
           echo "==> [3/3] Running vilage_collector.py..."
           uv run python vilage_collector.py
 
-      # 6. 저장소(kma-weather-storage) 레포로 데이터 및 깔끔한 로그 푸시
+      # 6. 저장소(kma-weather-storage) 레포로 데이터 및 월별 로그 푸시
       - name: Push Data and Log to Storage Repo
         env:
           STORAGE_PAT: ${{ secrets.STORAGE_KEY }}
@@ -88,12 +88,13 @@ jobs:
           mv storage_temp storage_repo
           cd storage_repo
           
-          # 원격 레포지토리에 이미 쌓여있는 최신 로그 내용 동기화
+          # 원격 레포지토리에 이미 쌓여있는 최신 내용 동기화
           git pull origin main || true
           
-          # 누적 로그 디렉토리 생성 및 CSV 기록
+          # 월별 누적 로그 디렉토리 생성 및 연-월별 CSV 기록 (예: meta_logs/collection_history_2026-09.csv)
           mkdir -p meta_logs
-          LOG_FILE="meta_logs/collection_history.csv"
+          CURRENT_YEAR_MONTH=$(TZ='Asia/Seoul' date -d "@$START_TIME" "+%Y-%m" 2>/dev/null || TZ='Asia/Seoul' date -r "$START_TIME" "+%Y-%m")
+          LOG_FILE="meta_logs/collection_history_${CURRENT_YEAR_MONTH}.csv"
           
           if [ ! -f "$LOG_FILE" ]; then
             echo "start_time,end_time,duration_sec,status" > "$LOG_FILE"
@@ -117,6 +118,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: update weather data and log (${DURATION}s) [skip ci]"
+            git commit -m "chore: update weather data and monthly log (${CURRENT_YEAR_MONTH}) [skip ci]"
             git push origin main
           fi
